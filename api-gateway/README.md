@@ -1,7 +1,5 @@
-# loopback-gateway
-
-`loopback-gateway` is an example application to demonstrate how to build
-an API gateway using LoopBack.
+Mulesoft Engineering Challenge
+I read a lot of tutorials online on node.js and fiddled around quite a bit. Here is what I have from following a few tutorials specific to api-gateways. I know it's not much but I followed a few tutorials and ran some of the tests they recommended.
 
 ## What is an API gateway
 
@@ -10,13 +8,9 @@ secure and manage APIs.  The API gateway sits as an intermediary between the
 many consumers of APIs - API clients  and the many producers of the APIs on the
 backend - API servers. 
 
-You can see more information at:
-
-http://strongloop.com/strongblog/open-source-node-js-api-gateway/
-
 ## The basic features
 
-In this tutorial, we'll build a simplified version of API gateway using LoopBack.
+Following instructions, this simplified API gateway was scaffolded using Loopback and server.js is written in node.js.
 The gateway supports basic features listed below:
 
 - HTTPS: make sure all communication will be done with https
@@ -27,21 +21,16 @@ resource owners
 period for identified api consumers 
 - Reverse proxy: forward the requests to the server that hosts the api endpoint
 
-The test scenario consists of three components:
+The test scenario is made of three components:
  
 - A client application that invokes REST APIs
-- A loopback application (api gateway) that bridges the client application and 
+- An api gateway that bridges the client application and 
 the backend api 
-- A loopback application (api server) serving the REST APIs 
+- An api server serving the REST APIs 
  
 The architecture is illustrated in the diagram below.
 
 ![loopback-api-gateway](loopback-api-gateway.png)
-
-## Build the gateway application
-
-The application is initially scaffolded using `slc loopback` command. We 
-customize server/server.js to add specific features for the gateway.
 
 ### Configure and ensure HTTPS
 
@@ -49,21 +38,9 @@ customize server/server.js to add specific features for the gateway.
 authorization server MUST require the use of TLS with server authentication for
 any request sent to the authorization and token endpoints.
 
-There are two steps involved:
-
+I did two things:
 1. Create the https server for the application
-
-See https://github.com/strongloop/loopback-example-ssl for more details.
-
 2. Redirect incoming http requests to the https urls
-
-```js
-var httpsRedirect = require('./middleware/https-redirect');
-...
-// Redirect http requests to https
-var httpsPort = app.get('https-port');
-app.use(httpsRedirect({httpsPort: httpsPort}));
-```
 
 ### Configure oAuth 2.0
 
@@ -77,26 +54,13 @@ resource server.
 The oAuth authorization server exposes the authorization endpoint to allow 
 resource owners (users) to grant permissions to authenticated client 
 applications. It also creates the token endpoint to issue access tokens to client
-applications with valid grants. 
-
-```js
-var oauth2 = require('loopback-component-oauth2').oAuth2Provider(
-  app, {
-    dataSource: app.dataSources.db, // Data source for oAuth2 metadata persistence
-    loginPage: '/login', // The login page url
-    loginPath: '/login' // The login processing url
-  });
-```
+applications with valid grants.
 
 #### Set up resource server
 
 To protect endpoints with oAuth 2.0, we set up middleware that checks incoming 
 requests for an access token and validate it with the information persisted on
 the server when the token is issued.
-
-```js
-oauth2.authenticate(['/protected', '/api', '/me'], {session: false, scope: 'demo'});
-```
 
 ### Rate Limiting
 
@@ -110,11 +74,6 @@ id, the user id, the client ip address, or a combination of more than one identi
 
 The sample uses a [token bucket](http://en.wikipedia.org/wiki/Token_bucket) based
 algorithm to enforce the rate limits based on authenticated client application ids.
- 
-```js
-var rateLimiting = require('./middleware/rate-limiting');
-app.use(rateLimiting({limit: 100, interval: 60000}));
-```
 
 ### Proxy
 
@@ -122,65 +81,12 @@ The proxy middleware allows incoming requests to be forwarded/dispatched to
 other servers. In this tutorial, we'll route /api/ to http://localhost:3002/api/.
 The implementation is based on [node-http-proxy](https://github.com/nodejitsu/node-http-proxy).
 
-```js
-var proxy = require('./middleware/proxy');
-var proxyOptions = require('./middleware/proxy/config.json');
-app.use(proxy(proxyOptions));
-```
-
-```json
-{
-  "rules": [
-    "^/api/(.*)$ http://localhost:3002/api/$1 [P]"
-  ]
-}
-```
-
 ### Sign up client applications and users 
 
 oAuth 2.0 requires client applications to be registered. In this tutorial, we
 can simply create a new instance with the LoopBack built-in application model. 
 The client id is `123` and the client secret is `secret`. The resource owner is
 basically a user. We create a user named `bob` with password `secret` for testing.
-
-```js
-function signupTestUserAndApp() {
-// Create a dummy user and client app
-  app.models.User.create({username: 'bob',
-    password: 'secret',
-    email: 'foo@bar.com'}, function(err, user) {
-
-    if (!err) {
-      console.log('User registered: username=%s password=%s',
-        user.username, 'secret');
-    }
-
-    // Hack to set the app id to a fixed value so that we don't have to change
-    // the client settings
-    app.models.Application.beforeSave = function(next) {
-      this.id = 123;
-      this.restApiKey = 'secret';
-      next();
-    };
-    app.models.Application.register(
-      user.id,
-      'demo-app',
-      {
-        publicKey: sslCert.certificate
-      },
-      function(err, demo) {
-        if (err) {
-          console.error(err);
-        } else {
-          console.log('Client application registered: id=%s key=%s',
-            demo.id, demo.restApiKey);
-        }
-      }
-    );
-
-  });
-}
-```
 
 ## Run the demo
 
